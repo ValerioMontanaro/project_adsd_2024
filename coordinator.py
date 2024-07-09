@@ -6,13 +6,13 @@ from replication import replicate_write, get_from_replicas
 app = Flask(__name__)
 
 # Configurazione del numero di repliche per ogni chiave
-N = 3  # Numero di repliche
+N = 2  # Numero di repliche
 
 # Crea un'istanza dell'hashing consistente
 hash_ring = ConsistentHashing()
 
 # Aggiungere nodi al ring (esempio con 3 nodi)
-nodes = ["node1:5001", "node2:5002", "node3:5003"]
+nodes = ["localhost:5001", "localhost:5002", "localhost:5003"]
 for node in nodes:
     hash_ring.add_node(node)
 
@@ -23,7 +23,7 @@ def put(key):
     # Ottieni il valore dalla richiesta JSON
     value = request.json['value']
     # Determinare i nodi responsabili per la chiave
-    responsible_nodes = hash_ring.get_nodes(key, count=N)  # Supponendo un fattore di replica di 3
+    responsible_nodes = hash_ring.get_nodes(key, count=N)
     if replicate_write(key, value, responsible_nodes):
         return jsonify({"status": "success"})
     else:
