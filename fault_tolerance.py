@@ -17,28 +17,28 @@ class FaultTolerance:
         self.coordinator_address = coordinator_address
         self.confirmed_failures = set()
         self.lock = threading.Lock()
-        self.heartbeat_table = {node_id: time.time() for node_id in self.all_nodes}  # Inizializzare heartbeat_table con node_id come chiave e 0 come valore
+        self.heartbeat_table = {node: time.time() for node in self.all_nodes}  # Inizializzare heartbeat_table con node_id come chiave e 0 come valore
 
-    def update_heartbeat_table(self, node_id, timestamp):
+    def update_heartbeat_table(self, node, timestamp):
         with self.lock:
-            self.heartbeat_table[node_id] = timestamp
-            print(f"Heartbeat updated for {node_id} at {timestamp}")
+            self.heartbeat_table[node] = timestamp
+            print(f"Heartbeat updated for {node} at {timestamp}")
 
     def check_heartbeat_table(self):
         while True:
             with self.lock:
                 current_time = time.time()
-                for node_id, timestamp in self.heartbeat_table.items():
+                for node, timestamp in self.heartbeat_table.items():
                     if current_time - timestamp > 25:
-                        print(f"NODE {node_id} HAS FAILED")
+                        print(f"NODE {node} HAS FAILED")
                         # self.notify_coordinator(node_id)
             time.sleep(1)
 
-    def notify_coordinator(self, node_id):
+    def notify_coordinator(self, node):
         try:
-            response = requests.post(f"http://{self.coordinator_address}/node_failure", json={"node_id": node_id})
+            response = requests.post(f"http://{self.coordinator_address}/node_offline", json={"node": node})
             response.raise_for_status()  # Raise an exception for 4xx/5xx status codes, se l'eccezione viene sollevata allora si passa direttamente al blocco except, ALTRIMENTI si va avanti nel blocco try
-            print(f"Coordinator notified of node {node_id} failure")
+            print(f"Coordinator notified of node {node} failure")
         except requests.exceptions.RequestException as e:
             print(f"Failed to notify coordinator: {e}")
 
@@ -49,9 +49,9 @@ class FaultTolerance:
         def report_heartbeat():
             print("FUNZIONE DI REPORT CHIAMATA")
             data = request.get_json()
-            node_id = data['node_id']
+            node = data['node']
             timestamp = data['timestamp']
-            self.update_heartbeat_table(node_id, timestamp)
+            self.update_heartbeat_table(node, timestamp)
             print("FUNZIONE DI UPDATE CHIAMATA")
             return jsonify({"status": "ok"})
 
@@ -73,7 +73,7 @@ class FaultTolerance:
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Fault Tolerance Node")
     parser.add_argument('--address', required=True, help='The address of the fault tolerance node (IP:port)')
-    parser.add_argument('--all_nodes', required=True, type=str, help='A JSON string representing a list of all node IDs')
+    parser.add_argument('--all_nodes', required=True, type=str, help='A JSON string representing a list of all IP:port addresses of the nodes in the system ')
     parser.add_argument('--coordinator_address', required=True, help='The address of the coordinator node (IP:port)')
 
     args = parser.parse_args()

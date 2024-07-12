@@ -10,10 +10,9 @@ class Node:
     """Questo è il costruttore della classe che inizializza un nodo con un ID, un indirizzo e una lista di nodi vicini.
     Inizializza anche un dizionario vuoto per i dati e una tabella di heartbeat."""
 
-    def __init__(self, node_id, address, fault_tolerance_address):
+    def __init__(self, node, fault_tolerance_address):
         self.fault_tolerance_address = fault_tolerance_address  # indirizzo del nodo di tolleranza ai guasti
-        self.node_id = node_id  # identificatore univioco del nodo
-        self.address = address  # indirizzo del nodo (IP:porta)
+        self.node = node  # coppia indirizzo-porta del nodo
         self.data = {}  # dizionario che contiene i dati del nodo
         self.lock = threading.Lock()  # Un oggetto di lock per garantire che l'accesso ai dati condivisi sia thread-safe
         self.stop_event = threading.Event()
@@ -31,11 +30,11 @@ class Node:
             time.sleep(5)
             current_time = time.time()
             try:
-                response = requests.post(f"http://{self.fault_tolerance_address}/heartbeat", json={"node_id": self.node_id, "timestamp": current_time})
+                response = requests.post(f"http://{self.fault_tolerance_address}/heartbeat", json={"node": self.node, "timestamp": current_time})
                 response.raise_for_status()
-                print(f"SENT heartbeat to fault tolerance node at {current_time} by node {self.node_id}")
+                print(f"SENT heartbeat to fault tolerance node at {current_time} by node {self.node}")
             except requests.exceptions.RequestException as e:
-                print(f"Failed to send heartbeat to fault tolerance node: {e} by node {self.node_id}")
+                print(f"Failed to send heartbeat to fault tolerance node: {e} by node {self.node}")
 
     def start(self):
         self.stop_event.clear()
@@ -63,7 +62,7 @@ class Node:
                 return jsonify({"error": "Key not found"}), 404
 
         # Avvio del server Flask con l'indirizzo e la porta del nodo
-        app.run(host=self.address.split(':')[0], port=int(self.address.split(':')[1]))
+        app.run(host=self.node.split(':')[0], port=int(self.node.split(':')[1]))
 
     def stop(self):
         self.stop_event.set()
@@ -71,15 +70,13 @@ class Node:
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Node for fault tolerance system")
-    parser.add_argument('--node_id', required=True, help='The ID of the node')
-    parser.add_argument('--address', required=True, help='The address of the node (IP:port)')
+    parser.add_argument('--node', required=True, help='The address of the node (IP:port)')
     parser.add_argument('--fault_tolerance_address', required=True, help='The address of the fault tolerance node (IP:port)')
 
     args = parser.parse_args()
 
     node = Node(
-        node_id=args.node_id,
-        address=args.address,
+        node=args.node,
         fault_tolerance_address=args.fault_tolerance_address
     )
 
