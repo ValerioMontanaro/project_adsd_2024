@@ -1,3 +1,4 @@
+import argparse
 import threading
 
 from flask import Flask, request, jsonify
@@ -115,16 +116,24 @@ class Coordinator:
 
 # Avvia l'applicazione Flask
 if __name__ == '__main__':
-    # Configurazione del numero di repliche per ogni chiave
-    N = 3  # Numero di repliche
 
-    # Configurazione del quorum di scrittura e lettura
-    W = 2  # Quorum di scrittura
-    R = 2  # Quorum di lettura
+    # Parsing degli argomenti da riga di comando
+    parser = argparse.ArgumentParser(description="Coordinator for distributed storage system")
+    parser.add_argument('--address', required=True, help='The address of the coordinator (IP:port)')
+    parser.add_argument('--nodes', required=True, nargs='+', help='List of node addresses (IP:port)')
+    parser.add_argument('--replication_factor', type=int, default=3, help='Replication factor')
+    parser.add_argument('--quorum_write', type=int, default=2, help='Quorum write value')
+    parser.add_argument('--quorum_read', type=int, default=2, help='Quorum read value')
 
-    # Crea un'istanza del Coordinator con i nodi e il fattore di replicazione, il quorum di scrittura e lettura specificati
-    nodes = ["localhost:5001", "localhost:5002", "localhost:5003"]
-    coordinator = Coordinator(nodes, N, W, R, "localhost:5000")
+    args = parser.parse_args()
+
+    coordinator = Coordinator(
+        nodes_list=args.nodes,
+        replication_factor=args.replication_factor,
+        quorum_write=args.quorum_write,
+        quorum_read=args.quorum_read,
+        address=args.address,
+    )
 
     threading.Thread(target=coordinator.start, daemon=True).start()
 

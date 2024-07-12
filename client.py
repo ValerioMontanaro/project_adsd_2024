@@ -1,3 +1,5 @@
+import argparse
+
 import requests
 
 
@@ -46,7 +48,19 @@ class Client:
 
 # Esempio di utilizzo del client
 if __name__ == "__main__":
-    client = Client("http://localhost:5000")
+
+    # Parsing degli argomenti da linea di comando
+    parser = argparse.ArgumentParser(description="Client for interacting with the distributed storage system")
+    parser.add_argument('--coordinator_address', required=True, help='The address of the coordinator (IP:port)')
+
+    args = parser.parse_args()
+
+    client = Client(coordinator_url=args.coordinator_address)
+
+    # Esempio di utilizzo del client
+    client.put('name', 'Alice')
+    get_result = client.get('name')
+    print(f"The value for 'name' is: {get_result}")
 
     # Test della scrittura di un valore
     put_response = client.put("testkey", "testvalue")
