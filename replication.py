@@ -6,7 +6,6 @@ class Replication:
     """
     Classe per la gestione della replicazione dei dati.
     """
-
     def __init__(self, quorum_write, quorum_read):
         """
         Inizializza la classe Replication con i parametri di quorum specificati.
@@ -20,26 +19,26 @@ class Replication:
     def write_to_node(node, key, value):
         """
         Scrive il valore di una chiave su un nodo.
-        :param node: nodo su cui scrivere il valore
+        :param node: coppia indirizzo-porta del nodo su cui scrivere il valore
         :param key: chiave da scrivere
         :param value: valore da scrivere
         :return: True se la scrittura ha avuto successo, False altrimenti
         """
-        url = f"http://{node}/store/{key}"
+        url = f"http://{node}/put"  # costruisce l'URL per la richiesta PUT
         try:
-            response = requests.put(url, json={"value": value})
-            response.raise_for_status()
-            return True
+            response = requests.put(url, json={"key": key, "value": value})  # invia una richiesta PUT al nodo
+            response.raise_for_status()  # solleva un'eccezione se la richiesta ha avuto esito negativo
+            return True  # restituisce True se la richiesta ha avuto esito positivo
         except requests.exceptions.RequestException as e:
             print(f"Failed to write to node {node}: {e}")
-            return False
+            return False  # restituisce False se la richiesta ha avuto esito negativo
 
     def replicate_write(self, key, value, nodes):
         """
         Replica il valore di una chiave su più nodi.
         :param key: chiave da scrivere
         :param value: valore da scrivere
-        :param nodes: lista di nodi su cui replicare il valore
+        :param nodes: lista di coppie indirizzo-porta dei nodi su cui replicare il valore
         :return: True se almeno quorum_write scritture hanno avuto successo, False altrimenti
         """
         with ThreadPoolExecutor() as executor:
@@ -56,24 +55,24 @@ class Replication:
     def read_from_node(node, key):
         """
         Legge il valore di una chiave da un nodo.
-        :param node: nodo da cui leggere il valore
+        :param node: coppia indirizzo-porta del nodo da cui leggere il valore
         :param key: chiave da leggere
         :return: valore della chiave se la lettura ha avuto successo, None altrimenti
         """
-        url = f"http://{node}/retrieve/{key}"
+        url = f"http://{node}/get"  # costruisce l'URL per la richiesta GET
         try:
-            response = requests.get(url)
-            response.raise_for_status()
-            return response.json().get('value')
+            response = requests.get(url, params={"key": key})  # invia una richiesta GET al nodo
+            response.raise_for_status()  # solleva un'eccezione se la richiesta ha avuto esito negativo
+            return response.json().get('value')  # restituisce il valore della chiave se la richiesta ha avuto successo
         except requests.exceptions.RequestException as e:
             print(f"Failed to read from node {node}: {e}")
-            return None
+            return None  # restituisce None se la richiesta ha avuto esito negativo
 
     def get_from_replicas(self, key, nodes, reduced_quorum):
         """
         Legge il valore di una chiave da più nodi e restituisce la prima risposta valida ricevuta.
         :param key: chiave da leggere
-        :param nodes: lista di nodi da cui leggere il valore
+        :param nodes: lista di coppie indirizzo-porta dei nodi da cui leggere il valore
         :param reduced_quorum: indica se usare un quorum ridotto
         :return: valore della chiave se almeno quorum_read letture hanno avuto successo, None altrimenti
         """
@@ -91,38 +90,11 @@ class Replication:
                 return responses[0]
             return None
 
-    @staticmethod
-    def remove_key_from_node(key, node):
+    def has_value(self, node, key):
         """
-        Rimuove una chiave da un nodo.
-        :param key: chiave da rimuovere
-        :param node: nodo da cui rimuovere la chiave
-        :return: True se la rimozione ha avuto successo, False altrimenti
-        """
-        url = f"http://{node}/remove/{key}"
-        try:
-            response = requests.delete(url)
-            response.raise_for_status()
-            return True
-        except requests.exceptions.RequestException as e:
-            print(f"Failed to remove key from node {node}: {e}")
-            return False
-
-    def verify_and_replicate(self, key, value, responsible_nodes, num_replicas, hash_ring):
-        """
-        Verifica e ripara le repliche di una chiave se necessario.
+        Verifica se il nodo ha il valore specificato.
         :param key: chiave da verificare
-        :param value: valore della chiave
-        :param responsible_nodes: nodi responsabili della chiave
-        :param num_replicas: numero di repliche richieste
-        :param hash_ring: istanza di ConsistentHashing
+        :param node: nodo su cui verificare la chiave
+        :return: True se il nodo ha il valore, False altrimenti
         """
-        actual_replica_count = sum(1 for node in responsible_nodes if hash_ring.nodes_status[node])
-        if actual_replica_count < num_replicas:
-            print(f"Repairing replicas for key {key}")
-
-            # Trova i nuovi nodi responsabili per la chiave
-            new_responsible_nodes = hash_ring.get_nodes(key, count=num_replicas)
-
-            # Replica la chiave sui nuovi nodi responsabili
-            self.replicate_write(key, value, new_responsible_nodes)
+        return self.read_from_node(node, key) is not None
