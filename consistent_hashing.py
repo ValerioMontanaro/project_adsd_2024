@@ -1,4 +1,5 @@
 import hashlib
+import logging
 import threading
 
 
@@ -47,9 +48,10 @@ class ConsistentHashing:
         with self.lock:
             for i in range(self.num_virtual_nodes):
                 node_hash = self._hash(f"{node}-{i}")
-                del self.ring[node_hash]  # rimuove l'hash del nodo dal ring
-                self.sorted_nodes.remove(node_hash)  # rimuove l'hash del nodo dalla lista ordinata
-                self.nodes_status[node] = False  # imposta lo stato del nodo come offline
+                if node_hash in self.ring:
+                    del self.ring[node_hash]  # rimuove l'hash del nodo dal ring
+                    self.sorted_nodes.remove(node_hash)  # rimuove l'hash del nodo dalla lista ordinata
+            self.nodes_status[node] = False  # imposta lo stato del nodo come offline
 
     def get_nodes(self, key, count):
         """
@@ -68,11 +70,15 @@ class ConsistentHashing:
                 break
         else:
             start_idx = 0
+            
+        logging.info(f"Start index for key '{key}' with hash {key_hash}: {start_idx}")
 
-        # Restituisce i nodi a partire da start_idx fino a count
-        for i in range(start_idx, start_idx + count):
-            node = self.ring[self.sorted_nodes[i % len(self.sorted_nodes)]]
-            # Prima di aggiungere il nodo alla lista verifica se è online
-            if self.nodes_status[node]:
+        # Trova i nodi corrispondenti alla chiave
+        while len(nodes) < count :
+            node = self.ring[self.sorted_nodes[start_idx % len(self.sorted_nodes)]]
+            logging.info(f"Nodo: {node}")
+            if self.nodes_status[node] and node not in nodes:  # Assicurati che il nodo non sia duplicato
                 nodes.append(node)
+            start_idx += 1
+        logging.info(f"Responsible nodes for key '{key}': {nodes}")
         return nodes

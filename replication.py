@@ -1,5 +1,6 @@
 import requests
 from concurrent.futures import ThreadPoolExecutor, as_completed
+import logging
 
 
 class Replication:
@@ -28,9 +29,10 @@ class Replication:
         try:
             response = requests.put(url, json={"key": key, "value": value})  # invia una richiesta PUT al nodo
             response.raise_for_status()  # solleva un'eccezione se la richiesta ha avuto esito negativo
+            logging.info(f"Successfully wrote to node {node}: {response.json()}")
             return True  # restituisce True se la richiesta ha avuto esito positivo
         except requests.exceptions.RequestException as e:
-            print(f"Failed to write to node {node}: {e}")
+            logging.error(f"Failed to write to node {node}: {e}")
             return False  # restituisce False se la richiesta ha avuto esito negativo
 
     def replicate_write(self, key, value, nodes):
@@ -49,6 +51,8 @@ class Replication:
                     success_count += 1
                 if success_count >= self.quorum_write:
                     break
+        logging.info(f" wrote to {success_count} nodes")
+        logging.info(f" quorum write {self.quorum_write}")
         return success_count >= self.quorum_write
 
     @staticmethod
@@ -63,12 +67,13 @@ class Replication:
         try:
             response = requests.get(url, params={"key": key})  # invia una richiesta GET al nodo
             response.raise_for_status()  # solleva un'eccezione se la richiesta ha avuto esito negativo
+            logging.info(f"Successfully read from node {node}: {response.json()}")
             return response.json().get('value')  # restituisce il valore della chiave se la richiesta ha avuto successo
         except requests.exceptions.RequestException as e:
-            print(f"Failed to read from node {node}: {e}")
+            logging.error(f"Failed to read from node {node}: {e}")
             return None  # restituisce None se la richiesta ha avuto esito negativo
 
-    def get_from_replicas(self, key, nodes, reduced_quorum):
+    def get_from_replicas(self, key, nodes):
         """
         Legge il valore di una chiave da più nodi e restituisce la prima risposta valida ricevuta.
         :param key: chiave da leggere
@@ -76,7 +81,6 @@ class Replication:
         :param reduced_quorum: indica se usare un quorum ridotto
         :return: valore della chiave se almeno quorum_read letture hanno avuto successo, None altrimenti
         """
-        quorum_read = self.quorum_read - 1 if reduced_quorum else self.quorum_read
         with ThreadPoolExecutor() as executor:
             future_to_node = {executor.submit(self.read_from_node, node, key): node for node in nodes}
             responses = []
@@ -84,9 +88,9 @@ class Replication:
                 result = future.result()
                 if result is not None:
                     responses.append(result)
-                if len(responses) >= quorum_read:
+                if len(responses) >= self.quorum_read:
                     break
-            if len(responses) >= quorum_read:
+            if len(responses) >= self.quorum_read:
                 return responses[0]
             return None
 
@@ -98,3 +102,14 @@ class Replication:
         :return: True se il nodo ha il valore, False altrimenti
         """
         return self.read_from_node(node, key) is not None
+    
+    def update_quorum(self, quorum_write, quorum_read):
+        """
+        Aggiorna i parametri di quorum per la scrittura e la lettura se un nodo va offline.
+        :param quorum_write: quorum di scrittura
+        :param quorum_read: quorum di lettura
+        """
+        self.quorum_write = quorum_write - 1
+        logging.info(f"Updated quorum write to {self.quorum_write}")
+        self.quorum_read = quorum_read - 1
+        logging.info(f"Updated quorum read to {self.quorum_read}")

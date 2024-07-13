@@ -1,11 +1,13 @@
 import argparse
 import threading
-
+import logging
 from flask import Flask, request, jsonify
 from consistent_hashing import ConsistentHashing
 from replication import Replication
 import time
 
+# Configura il logging
+logging.basicConfig(level=logging.INFO)
 
 class Coordinator:
     """
@@ -22,7 +24,9 @@ class Coordinator:
         """
         self.hash_ring = ConsistentHashing()
         self.replication_factor = replication_factor
-        self.replication = Replication(quorum_write, quorum_read)
+        self.quorum_write = quorum_write
+        self.quorum_read = quorum_read
+        self.replication = Replication(self.quorum_write, self.quorum_read)
         self.address = address
         self.node_offline = False  # Flag per indicare se un nodo è offline
 
@@ -38,6 +42,7 @@ class Coordinator:
         :return: True se almeno quorum_write scritture hanno avuto successo, False altrimenti
         """
         responsible_nodes = self.hash_ring.get_nodes(key, self.replication_factor)
+        logging.info(f"Responsible nodes for key '{key}': {responsible_nodes}")
         return self.replication.replicate_write(key, value, responsible_nodes)
 
     def get(self, key):
@@ -46,11 +51,11 @@ class Coordinator:
         :param key: chiave da leggere
         :return: valore della chiave se almeno quorum_read letture hanno avuto successo, None altrimenti
         """
+
         responsible_nodes = self.hash_ring.get_nodes(key, self.replication_factor)
-        reduced_quorum = self.node_offline
 
         # Ottiene il valore della chiave da almeno quorum_read nodi o da quorum_read - 1 nodi se un nodo è offline
-        value = self.replication.get_from_replicas(key, responsible_nodes, reduced_quorum)
+        value = self.replication.get_from_replicas(key, responsible_nodes)
 
         # Propaga il valore ai nodi che non ce l'hanno se il nodo è offline
         if value is not None:
@@ -79,6 +84,8 @@ class Coordinator:
         """
         self.hash_ring.remove_node(node_id)
         self.node_offline = True
+        self.replication.update_quorum(self.quorum_write, self.quorum_read)
+        logging.info(f"Node {node_id} removed and marked as offline.")
 
     def start(self):
 
@@ -120,15 +127,27 @@ if __name__ == '__main__':
     # Parsing degli argomenti da riga di comando
     parser = argparse.ArgumentParser(description="Coordinator for distributed storage system")
     parser.add_argument('--address', required=True, help='The address of the coordinator (IP:port)')
-    parser.add_argument('--nodes', required=True, nargs='+', help='List of node addresses (IP:port)')
+    parser.add_argument('--nodes', required=True, type=str, help='List of node addresses (IP:port) separated by commas')
     parser.add_argument('--replication_factor', type=int, default=3, help='Replication factor')
     parser.add_argument('--quorum_write', type=int, default=2, help='Quorum write value')
     parser.add_argument('--quorum_read', type=int, default=2, help='Quorum read value')
 
     args = parser.parse_args()
 
+    nodes_list1 = args.nodes.split(',')  # Converte la stringa di nodi in una lista
+    
+    # Rimuovere gli apici singoli e ordinare la lista
+    sorted_nodes = sorted([node.strip('"') for node in nodes_list1], key=lambda x: int(x.split(':')[1]))
+
+    # Convertire la lista a una stringa con doppi apici
+    nodes_list = [f'"{node}"' for node in sorted_nodes]
+                  
+    print(f"Nodes list: {nodes_list}")
+    print(type(nodes_list))
+    print(type(nodes_list[0]))
+
     coordinator = Coordinator(
-        nodes_list=args.nodes,
+        nodes_list=["127.0.0.1:8000", "127.0.0.1:8002", "127.0.0.1:8007","127.0.0.1:8005","127.0.0.1:8006"],
         replication_factor=args.replication_factor,
         quorum_write=args.quorum_write,
         quorum_read=args.quorum_read,

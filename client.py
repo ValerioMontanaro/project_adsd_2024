@@ -21,7 +21,7 @@ class Client:
         :param value: valore da scrivere
         :return: risposta del coordinatore alla richiesta PUT (True/False)
         """
-        url = f"{self.coordinator_url}/put/{key}"
+        url = f"http://{self.coordinator_url}/put/{key}"
         try:
             response = requests.put(url, json={"value": value})
             response.raise_for_status()  # solleva un'eccezione se la richiesta ha avuto esito negativo
@@ -36,7 +36,7 @@ class Client:
         :param key: chiave da leggere
         :return: valore della chiave se la richiesta GET ha avuto successo, None altrimenti
         """
-        url = f"{self.coordinator_url}/get/{key}"
+        url = f"http://{self.coordinator_url}/get/{key}"
         try:
             response = requests.get(url)
             response.raise_for_status()  # solleva un'eccezione se la richiesta ha avuto esito negativo
@@ -52,20 +52,20 @@ if __name__ == "__main__":
     # Parsing degli argomenti da linea di comando
     parser = argparse.ArgumentParser(description="Client for interacting with the distributed storage system")
     parser.add_argument('--coordinator_address', required=True, help='The address of the coordinator (IP:port)')
+    parser.add_argument('--operation', required=True, choices=['put', 'get'], help='The operation to perform')
+    parser.add_argument('--key', required=True, help='The key to operate on')
+    parser.add_argument('--value', help='The value to put')  # Optional argument for PUT operation
 
     args = parser.parse_args()
 
     client = Client(coordinator_url=args.coordinator_address)
 
-    # Esempio di utilizzo del client
-    client.put('name', 'Alice')
-    get_result = client.get('name')
-    print(f"The value for 'name' is: {get_result}")
-
-    # Test della scrittura di un valore
-    put_response = client.put("testkey", "testvalue")
-    print(f"PUT response: {put_response}")
-
-    # Test della lettura di un valore
-    get_response = client.get("testkey")
-    print(f"GET response: {get_response}")
+    if args.operation == 'put':
+        if args.value is None:
+            print("PUT operation requires a value.")
+        else:
+            response = client.put(args.key, args.value)
+            print(f"PUT Response: {response}")
+    elif args.operation == 'get':
+        response = client.get(args.key)
+        print(f"GET Response: {response}")
