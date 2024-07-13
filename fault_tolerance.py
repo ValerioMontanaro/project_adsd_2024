@@ -22,7 +22,6 @@ class FaultTolerance:
     def update_heartbeat_table(self, node, timestamp):
         with self.lock:
             self.heartbeat_table[node] = timestamp
-            print(f"Heartbeat updated for {node} at {timestamp}")
 
     def check_heartbeat_table(self):
         while True:
@@ -47,12 +46,10 @@ class FaultTolerance:
 
         @app.route('/heartbeat', methods=['POST'])
         def report_heartbeat():
-            print("FUNZIONE DI REPORT CHIAMATA")
             data = request.get_json()
             node = data['node']
             timestamp = data['timestamp']
             self.update_heartbeat_table(node, timestamp)
-            print("FUNZIONE DI UPDATE CHIAMATA")
             return jsonify({"status": "ok"})
 
         # Log the server start and listen address

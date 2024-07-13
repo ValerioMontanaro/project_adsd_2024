@@ -32,7 +32,6 @@ class Node:
             try:
                 response = requests.post(f"http://{self.fault_tolerance_address}/heartbeat", json={"node": self.node, "timestamp": current_time})
                 response.raise_for_status()
-                print(f"SENT heartbeat to fault tolerance node at {current_time} by node {self.node}")
             except requests.exceptions.RequestException as e:
                 print(f"Failed to send heartbeat to fault tolerance node: {e} by node {self.node}")
 
