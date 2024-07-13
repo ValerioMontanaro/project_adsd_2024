@@ -31,7 +31,7 @@ class FaultTolerance:
                 for node, timestamp in self.heartbeat_table.items():
                     if current_time - timestamp > 25:
                         print(f"NODE {node} HAS FAILED")
-                        # self.notify_coordinator(node_id)
+                        self.notify_coordinator(node)
             time.sleep(1)
 
     def notify_coordinator(self, node):
