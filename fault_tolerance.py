@@ -11,11 +11,12 @@ logging.basicConfig(level=logging.INFO)
 
 
 class FaultTolerance:
+
     def __init__(self, address, all_nodes, coordinator_address):
         self.address = address
         self.all_nodes = all_nodes  # lista di tutti gli id dei nodi
         self.coordinator_address = coordinator_address
-        self.confirmed_failures = set()
+        self.confirmed_failures = set()  # Set per tenere traccia dei nodi segnalati come offline
         self.lock = threading.Lock()
         self.heartbeat_table = {node: time.time() for node in self.all_nodes}  # Inizializzare heartbeat_table con node_id come chiave e 0 come valore
 
@@ -29,11 +30,13 @@ class FaultTolerance:
                 current_time = time.time()
                 for node, timestamp in self.heartbeat_table.items():
                     if current_time - timestamp > 25:
-                        print(f"NODE {node} HAS FAILED")
                         self.notify_coordinator(node)
+                        self.confirmed_failures.add(node)  # Aggiungi il nodo al set dei fallimenti confermati
             time.sleep(1)
 
     def notify_coordinator(self, node):
+        if node in self.confirmed_failures:
+            return  # Se il nodo è già stato segnalato, non fare nulla
         try:
             response = requests.post(f"http://{self.coordinator_address}/node_offline", json={"node": node})
             response.raise_for_status()  # Raise an exception for 4xx/5xx status codes, se l'eccezione viene sollevata allora si passa direttamente al blocco except, ALTRIMENTI si va avanti nel blocco try
