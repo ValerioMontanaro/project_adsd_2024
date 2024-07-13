@@ -66,6 +66,9 @@ class Replication:
         url = f"http://{node}/get"  # costruisce l'URL per la richiesta GET
         try:
             response = requests.get(url, params={"key": key})  # invia una richiesta GET al nodo
+            if response.status_code == 404:
+                logging.info(f"Node {node} does not have the key {key} (not an error).")
+                return None
             response.raise_for_status()  # solleva un'eccezione se la richiesta ha avuto esito negativo
             logging.info(f"Successfully read from node {node}: {response.json()}")
             return response.json().get('value')  # restituisce il valore della chiave se la richiesta ha avuto successo
