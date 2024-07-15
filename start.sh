@@ -49,7 +49,7 @@ python client.py --coordinator_address 127.0.0.1:8003 --operation get --key age
 kill $COORDINATOR_PID
 kill $FT_PID
 kill $NODE2_PID
-kill $NODE3_PID
+kill $NODE1_PID
 kill $NODE4_PID
 kill $NODE5_PID
 
