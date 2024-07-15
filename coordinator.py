@@ -32,6 +32,7 @@ class Coordinator:
 
         # Aggiunge i nodi iniziali al ring di consistent hashing
         for node in nodes_list:
+            logging.info(f"Adding node {node} to the ring.")
             self.hash_ring.add_node(node)
 
     def put(self, key, value):
@@ -134,20 +135,10 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    nodes_list1 = args.nodes.split(',')  # Converte la stringa di nodi in una lista
-    
-    # Rimuovere gli apici singoli e ordinare la lista
-    sorted_nodes = sorted([node.strip('"') for node in nodes_list1], key=lambda x: int(x.split(':')[1]))
-
-    # Convertire la lista a una stringa con doppi apici
-    nodes_list = [f'"{node}"' for node in sorted_nodes]
-                  
-    print(f"Nodes list: {nodes_list}")
-    print(type(nodes_list))
-    print(type(nodes_list[0]))
+    nodes = args.nodes.split(',')  # Converte la stringa di nodi in una lista
 
     coordinator = Coordinator(
-        nodes_list=["127.0.0.1:8000", "127.0.0.1:8002", "127.0.0.1:8007","127.0.0.1:8005","127.0.0.1:8006"],
+        nodes_list=nodes,
         replication_factor=args.replication_factor,
         quorum_write=args.quorum_write,
         quorum_read=args.quorum_read,
