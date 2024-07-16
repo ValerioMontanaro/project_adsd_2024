@@ -24,10 +24,10 @@ project_adsd_2024/
 
 - **client.py**: Interfaccia cliente per interagire con il key-value store mediante operazioni GET e PUT.
 - **coordinator.py**: Gestisce le richieste di lettura e scrittura e le inoltra ai nodi appropriati.
-- **node.py**: Definisce la classe Node che rappresenta un singolo nodo nel sistema distribuito. Gestisce le operazioni di lettura e scrittura locali e la comunicazione con altri nodi.
+- **node.py**: Definisce la classe Node che rappresenta un singolo nodo nel sistema distribuito. Gestisce le operazioni di lettura e scrittura a livello locale.
 - **consistent_hashing.py**: Contiene le funzioni per aggiungere e rimuovere nodi e trovare il nodo responsabile per una data chiave utilizzando l'hash consistente.
 - **replication.py**: Implementa la logica per specificare il fattore di replica e distribuire i dati replicati sui nodi.
-- **fault_tolerance.py**: Gestisce la rilevazione dei guasti, il failover e il recupero dei nodi.
+- **fault_tolerance.py**: Gestisce la rilevazione dei guasti e la notifica alla classe Coordinator.
 - **start.sh**: Script per avviare e testare l'intero sistema tramite shell Linux.
 - **requirements.txt**: Contiene le dipendenze necessarie per eseguire il progetto.
 - **README.md**: Questo file, che descrive il progetto e fornisce istruzioni su come eseguirlo.
