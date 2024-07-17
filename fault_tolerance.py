@@ -19,10 +19,10 @@ class FaultTolerance:
         """
         Inizializza il nodo di tolleranza ai guasti con l'indirizzo, la lista di tutti i nodi e l'indirizzo del coordinatore.
         param address: indirizzo del nodo di tolleranza ai guasti (IP:porta)
-        param all_nodes: lista di tutti gli indirizzi IP:porta dei nodi
+        param all_nodes: lista di tutti gli indirizzi (IP:porta) dei nodi
         param coordinator_address: indirizzo del coordinatore (IP:porta)
         """
-        self.address = address
+        self.address = address # Indirizzo del nodo di tolleranza ai guasti
         self.all_nodes = all_nodes  # lista di tutti gli id dei nodi
         self.coordinator_address = coordinator_address
         self.confirmed_failures = set()  # Set per tenere traccia dei nodi segnalati come offline
@@ -40,7 +40,7 @@ class FaultTolerance:
 
     def check_heartbeat_table(self):
         """
-        Controlla periodicamente la tabella degli heartbeat e notifica il coordinatore se un nodo non invia un heartbeat
+        Controlla periodicamente la tabella degli heartbeat e notifica il coordinator se un nodo non invia un heartbeat
         in un determinato delta di tempo, in questo caso 25 secondi.
         """
         while True:
@@ -61,7 +61,7 @@ class FaultTolerance:
             return  # Se il nodo è già stato segnalato, non fare nulla
         try:
             response = requests.post(f"http://{self.coordinator_address}/node_offline", json={"node": node})
-            response.raise_for_status()  # Raise an exception for 4xx/5xx status codes, se l'eccezione viene sollevata allora si passa direttamente al blocco except, ALTRIMENTI si va avanti nel blocco try
+            response.raise_for_status()  # Crea un eccezione se la request non va a buon fine, se l'eccezione viene sollevata allora si passa direttamente al blocco except, ALTRIMENTI si va avanti nel blocco try
             print(f"Coordinator notified of node {node} failure")
         except requests.exceptions.RequestException as e:
             print(f"Failed to notify coordinator: {e}")
@@ -81,14 +81,8 @@ class FaultTolerance:
             self.update_heartbeat_table(node, timestamp)
             return jsonify({"status": "ok"})
 
-        # Log che indica che il server Flask è stato avviato
-        logging.info(f"Starting Flask server on {self.address}")
-
         # Avvia un thread per controllare periodicamente la tabella degli heartbeat
         threading.Thread(target=self.check_heartbeat_table, daemon=True).start()
-
-        # Log che indica che il controllo degli heartbeat è stato avviato
-        logging.info("Heartbeat check & flask server started for fault tolerance node")
 
         try:
             # Avvia il server Flask con l'indirizzo e la porta specificati

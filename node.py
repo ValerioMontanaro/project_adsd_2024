@@ -9,13 +9,11 @@ from flask import Flask, request, jsonify
 class Node:
     """
     Classe che rappresenta il singolo nodo/DB del sistema di storage distribuito.
-    param node: indirizzo del nodo (IP:porta)
-    param fault_tolerance_address: indirizzo del nodo di tolleranza ai guasti (IP:porta)
     """
 
     def __init__(self, node, fault_tolerance_address):
         """
-        Inizializza il nodo con l'indirizzo del nodo e l'indirizzo del nodo di tolleranza ai guasti.
+        Inizializza il nodo con l'indirizzo del nodo stesso e l'indirizzo del nodo di tolleranza ai guasti.
         param node: indirizzo del nodo (IP:porta)
         param fault_tolerance_address: indirizzo del nodo di tolleranza ai guasti (IP:porta)
         """
