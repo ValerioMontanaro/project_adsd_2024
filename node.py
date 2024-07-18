@@ -21,7 +21,6 @@ class Node:
         self.node = node  # coppia indirizzo-porta del nodo
         self.data = {}  # dizionario che contiene i dati del nodo
         self.lock = threading.Lock()  # Un oggetto di lock per garantire che l'accesso ai dati condivisi sia thread-safe
-        self.stop_event = threading.Event()  # Un oggetto di evento per segnalare la terminazione dei thread
 
     def store(self, key, value):
         """
@@ -45,20 +44,18 @@ class Node:
         """
         Metodo per inviare un heartbeat al nodo di tolleranza ai guasti.
         """
-        while not self.stop_event.is_set():
-            time.sleep(5)
-            current_time = time.time()
-            try:
-                response = requests.post(f"http://{self.fault_tolerance_address}/heartbeat", json={"node": self.node, "timestamp": current_time})
-                response.raise_for_status()
-            except requests.exceptions.RequestException as e:
-                print(f"Failed to send heartbeat to fault tolerance node: {e} by node {self.node}")
+        time.sleep(5)
+        current_time = time.time()
+        try:
+            response = requests.post(f"http://{self.fault_tolerance_address}/heartbeat", json={"node": self.node, "timestamp": current_time})
+            response.raise_for_status()
+        except requests.exceptions.RequestException as e:
+            print(f"Failed to send heartbeat to fault tolerance node: {e} by node {self.node}")
 
     def start(self):
         """
         Metodo per avviare il nodo.
         """
-        self.stop_event.clear()
         # Avvio dei thread per l'invio e il controllo degli heartbeat
         threading.Thread(target=self.send_heartbeat, daemon=True).start()
 
@@ -87,9 +84,6 @@ class Node:
         # Avvio del server Flask con l'indirizzo e la porta del nodo
         app.run(host=self.node.split(':')[0], port=int(self.node.split(':')[1]))
 
-    def stop(self):
-        self.stop_event.set()
-
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Node for fault tolerance system")
@@ -106,4 +100,4 @@ if __name__ == '__main__':
     try:
         node.start()
     except KeyboardInterrupt:
-        node.stop()
+        print("Error starting node.")
