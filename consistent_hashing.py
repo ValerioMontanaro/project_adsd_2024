@@ -37,7 +37,7 @@ class ConsistentHashing:
                 node_hash = self._hash(f"{node}-{i}")  # calcola l'hash del nodo concatenato con un indice virtuale
                 self.ring[node_hash] = node  # mappa l'hash del nodo al nodo stesso
                 self.sorted_nodes.append(node_hash)  # aggiunge l'hash del nodo alla lista ordinata
-                self.nodes_status[node] = True  # imposta lo stato del nodo come online
+            self.nodes_status[node] = True  # imposta lo stato del nodo come online
             self.sorted_nodes.sort()  # riordina la lista degli hash dei nodi
 
     def remove_node(self, node):
@@ -46,12 +46,8 @@ class ConsistentHashing:
         :param node: coppia indirizzo-porta del nodo da rimuovere
         """
         with self.lock:
-            for i in range(self.num_virtual_nodes):
-                node_hash = self._hash(f"{node}-{i}")
-                if node_hash in self.ring:
-                    del self.ring[node_hash]  # rimuove l'hash del nodo dal ring
-                    self.sorted_nodes.remove(node_hash)  # rimuove l'hash del nodo dalla lista ordinata
-            self.nodes_status[node] = False  # imposta lo stato del nodo come offline
+            if node in self.nodes_status:
+                self.nodes_status[node] = False  # imposta lo stato del nodo come offline
 
     def get_nodes(self, key, count):
         """
