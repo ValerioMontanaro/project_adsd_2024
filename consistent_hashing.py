@@ -62,6 +62,7 @@ class ConsistentHashing:
         """
         nodes = []
         key_hash = self._hash(key)
+        logging.info(f"Hash dei nodi: {self.sorted_nodes}")
 
         # Trova l'indice del nodo a partire dal quale cercare i nodi corrispondenti alla chiave
         for i, node_hash in enumerate(self.sorted_nodes):
@@ -77,6 +78,7 @@ class ConsistentHashing:
         while len(nodes) < count :
             node = self.ring[self.sorted_nodes[start_idx % len(self.sorted_nodes)]]
             logging.info(f"Nodo: {node}")
+            logging.info(f"hash: {self.sorted_nodes[start_idx % len(self.sorted_nodes)]}")
             if self.nodes_status[node] and node not in nodes:  # Assicurati che il nodo non sia duplicato
                 nodes.append(node)
             start_idx += 1
