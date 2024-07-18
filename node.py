@@ -44,13 +44,14 @@ class Node:
         """
         Metodo per inviare un heartbeat al nodo di tolleranza ai guasti.
         """
-        time.sleep(5)
-        current_time = time.time()
-        try:
-            response = requests.post(f"http://{self.fault_tolerance_address}/heartbeat", json={"node": self.node, "timestamp": current_time})
-            response.raise_for_status()
-        except requests.exceptions.RequestException as e:
-            print(f"Failed to send heartbeat to fault tolerance node: {e} by node {self.node}")
+        while True:
+            time.sleep(5)
+            current_time = time.time()
+            try:
+                response = requests.post(f"http://{self.fault_tolerance_address}/heartbeat", json={"node": self.node, "timestamp": current_time})
+                response.raise_for_status()
+            except requests.exceptions.RequestException as e:
+                print(f"Failed to send heartbeat to fault tolerance node: {e} by node {self.node}")
 
     def start(self):
         """
